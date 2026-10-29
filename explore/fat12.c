@@ -1,49 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-
-#pragma pack(push, 1)
-typedef struct
-{
-  uint8_t jump[3];
-  char oem[8];
-  uint16_t bytes_per_sector;
-  uint8_t sectors_per_cluster;
-  uint16_t reserved_sectors;
-  uint8_t fat_count;
-  uint16_t root_dir_entries;
-  uint16_t total_sectors_small;
-  uint8_t media_descriptor;
-  uint16_t sectors_per_fat;
-  uint16_t sectors_per_track;
-  uint16_t heads_or_sides;
-  uint32_t hidden_sectors;
-  uint32_t total_sectors_large;
-
-  uint8_t drive_number;
-  uint8_t flags;
-  uint8_t signature;
-  uint32_t volume_id;
-  char label_string[11];
-  char system_id_string[8];
-  uint8_t code[448];
-  uint16_t boot_signature;
-} FAT12_BPB;
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-typedef struct
-{
-  char name[8];
-  char extension[3];
-  uint8_t attribute;
-  uint8_t reserved[10];
-  uint16_t last_modification_time;
-  uint16_t last_modification_date;
-  uint16_t first_cluster;
-  uint32_t size;
-} FAT12_root_dir_entry;
-#pragma pack(pop)
+#include "FAT.h"
 
 int main(void)
 {
@@ -54,8 +12,8 @@ int main(void)
     return 1;
   }
 
-  FAT12_BPB bpb;
-  fread(&bpb, sizeof(FAT12_BPB), 1, fp);
+  FAT_BPB bpb;
+  fread(&bpb, sizeof(FAT_BPB), 1, fp);
 
   printf("*********** Raw MetaData ***********\n");
   printf("Entry 1 -> 0(0x00) -> 3 Bytes: %02x %02x %02x\n", bpb.jump[0], bpb.jump[1], bpb.jump[2]);
@@ -107,8 +65,8 @@ int main(void)
   printf("Data Start LBA:      Sector %u (Byte offset: %u)\n", data_lba, data_lba * 512);
 
   fseek(fp, root_lba * bpb.bytes_per_sector, SEEK_SET);
-  FAT12_root_dir_entry *root_dir_en_12 = malloc(bpb.root_dir_entries * sizeof(FAT12_root_dir_entry));
-  fread(root_dir_en_12, bpb.root_dir_entries * sizeof(FAT12_root_dir_entry), 1, fp);
+  FAT_root_dir_entry *root_dir_en_12 = malloc(bpb.root_dir_entries * sizeof(FAT_root_dir_entry));
+  fread(root_dir_en_12, bpb.root_dir_entries * sizeof(FAT_root_dir_entry), 1, fp);
   printf("Root Directory Entries: \n");
   for (int i = 0; i < bpb.root_dir_entries; i++)
   {
@@ -116,7 +74,7 @@ int main(void)
     {
       break;
     }
-    
+
     printf("%d -> ", i + 1);
     printf("Name: %.8s\n", root_dir_en_12[i].name);
     printf("Extension: %.3s\n", root_dir_en_12[i].extension);
